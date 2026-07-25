@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinical Review Chat</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface-2: #243044;
+      --border: #2d3f56;
+      --text: #e8eef5;
+      --muted: #8fa3bc;
+      --accent: #3b9eff;
+      --user: #1e3a5f;
+      --assistant: #243044;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .sidebar { padding: 1rem; display: grid; gap: 0.75rem; }
+    label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 0.35rem; }
+    input, select, button, textarea {
+      font: inherit;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    input, select {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    button {
+      padding: 0.55rem 0.85rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .chat-wrap { display: flex; flex-direction: column; height: calc(100vh - 120px); min-height: 500px; }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .bubble {
+      max-width: 85%;
+      padding: 0.75rem 0.9rem;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+    .bubble.user { align-self: flex-end; background: var(--user); }
+    .bubble.assistant { align-self: flex-start; background: var(--assistant); border: 1px solid var(--border); }
+    .composer {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    textarea {
+      flex: 1;
+      min-height: 48px;
+      max-height: 140px;
+      resize: vertical;
+      padding: 0.7rem;
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; }
+    .hint { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+    .case-list {
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+    .case-item {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .case-item:last-child { border-bottom: none; }
+    .case-item:hover { background: #2d3f56; }
+    .case-item.active { background: #2d3f56; border-left: 3px solid var(--accent); }
+    .case-item .title { font-weight: 600; margin-bottom: 0.15rem; }
+    .case-item .sub { color: var(--muted); font-size: 0.75rem; }
+    .empty-cases {
+      padding: 0.75rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <strong>Clinical Review Chat</strong>
+      <div class="meta">LangGraph agent with Neo4j tools</div>
+    </div>
+    <a href="/">← Back to case UI</a>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="panel-header">Session</div>
+      <div class="sidebar">
+        <div>
+          <label for="caseId">Link to case ID (optional)</label>
+          <input id="caseId" placeholder="paste case uuid" />
+        </div>
+        <button id="newSessionBtn">New chat session</button>
+        <button class="secondary" id="loadCasesBtn">Refresh cases</button>
+        <div id="caseList" class="case-list" style="display:none"></div>
+        <div class="hint">
+          Slash commands:<br>
+          /help /status<br>
+          /start-review<br>
+          /formal-review<br>
+          /approve /reject
+        </div>
+        <div class="meta" id="sessionMeta">No active session</div>
+      </div>
+    </section>
+
+    <section class="panel chat-wrap">
+      <div class="panel-header">Conversation</div>
+      <div class="messages" id="messages"></div>
+      <form class="composer" id="chatForm">
+        <textarea id="messageInput" placeholder="Ask about the case, labs, or type /help" required></textarea>
+        <button type="submit" id="sendBtn">Send</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const API = "/api/v1";
+    let sessionId = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function addBubble(role, content) {
+      const el = document.createElement("div");
+      el.className = `bubble ${role}`;
+      el.textContent = content;
+      $("messages").appendChild(el);
+      $("messages").scrollTop = $("messages").scrollHeight;
+    }
+
+    async function api(path, options = {}) {
+      const res = await fetch(`${API}${path}`, {
+        headers: { "Content-Type": "application/json", ...options.headers },
+        ...options,
+      });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!res.ok) {
+        const detail = data?.detail;
+        const msg = typeof detail === "string" ? detail : JSON.stringify(detail || data);
+        throw new Error(msg || `Request failed (${res.status})`);
+      }
+      return data;
+    }
+
+    function renderCaseList(cases) {
+      const list = $("caseList");
+      list.style.display = "block";
+
+      if (!cases.length) {
+        list.innerHTML = `
+          <div class="empty-cases">
+            No cases found. Cases are stored in memory — create one on the
+            <a href="/" style="color:var(--accent)">main UI</a> first, then refresh.
+          </div>`;
+        return;
+      }
+
+      const selectedId = $("caseId").value.trim();
+      list.innerHTML = cases.map((c) => `
+        <div class="case-item ${c.id === selectedId ? "active" : ""}" data-id="${c.id}">
+          <div class="title">${escapeHtml(c.title)}</div>
+          <div class="sub">${escapeHtml(c.status)} · patient ${escapeHtml(c.patient_id)}</div>
+        </div>
+      `).join("");
+
+      list.querySelectorAll(".case-item").forEach((el) => {
+        el.addEventListener("click", () => {
+          $("caseId").value = el.dataset.id;
+          list.querySelectorAll(".case-item").forEach((item) => item.classList.remove("active"));
+          el.classList.add("active");
+        });
+      });
+
+      if (!selectedId && cases.length) {
+        $("caseId").value = cases[0].id;
+        list.querySelector(".case-item")?.classList.add("active");
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    async function loadCases() {
+      const btn = $("loadCasesBtn");
+      btn.disabled = true;
+      btn.textContent = "Loading…";
+      try {
+        const cases = await api("/cases");
+        renderCaseList(cases);
+      } catch (err) {
+        $("caseList").style.display = "block";
+        $("caseList").innerHTML = `<div class="empty-cases">Failed to load cases: ${escapeHtml(err.message)}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Refresh cases";
+      }
+    }
+
+    async function createSession(caseId = null) {
+      const payload = caseId ? { case_id: caseId } : {};
+      const session = await api("/chat/sessions", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      sessionId = session.id;
+      $("messages").innerHTML = "";
+      session.messages.forEach((m) => addBubble(m.role, m.content));
+      $("sessionMeta").textContent = `Session ${sessionId}${caseId ? ` · case ${caseId}` : ""}`;
+    }
+
+    $("newSessionBtn").addEventListener("click", async () => {
+      const caseId = $("caseId").value.trim() || null;
+      try {
+        await createSession(caseId);
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    $("loadCasesBtn").addEventListener("click", loadCases);
+
+    loadCases();
+
+    $("chatForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!sessionId) {
+        alert("Create a chat session first");
+        return;
+      }
+      const content = $("messageInput").value.trim();
+      if (!content) return;
+      addBubble("user", content);
+      $("messageInput").value = "";
+      $("sendBtn").disabled = true;
+      try {
+        const res = await api(`/chat/sessions/${sessionId}/messages`, {
+          method: "POST",
+          body: JSON.stringify({ content }),
+        });
+        addBubble("assistant", res.content);
+        if (res.case_status) {
+          $("sessionMeta").textContent = `Session ${sessionId} · case ${res.case_id} · ${res.case_status}`;
+        }
+      } catch (err) {
+        addBubble("assistant", `Error: ${err.message}`);
+      } finally {
+        $("sendBtn").disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cms:cms@postgres:5432/cms_audit
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: password
+      FHIR_BASE_URL: http://hapi-fhir:8080/fhir
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://greyflow-ai:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-mistral-nemo:latest}
+      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-in-production}
+      WEBHOOK_CLINICAL_QUERY: ${WEBHOOK_CLINICAL_QUERY:-Review the latest observation in context and recommend whether care management should proceed.}
+      WEBHOOK_ENABLED: ${WEBHOOK_ENABLED:-true}
+      WEBHOOK_PUBLIC_BASE_URL: ${WEBHOOK_PUBLIC_BASE_URL:-http://api:8000}
+    extra_hosts:
+      - "greyflow-ai:${GREYFLOW_AI_HOST_IP:-host.docker.internal}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      hapi-fhir:
+        condition: service_started
+    volumes:
+      - ./app:/app/app
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cms
+      POSTGRES_PASSWORD: cms
+      POSTGRES_DB: cms_audit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cms -d cms_audit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - ./init-scripts/neo4j:/import
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  hapi-fhir:
+    image: hapiproject/hapi:latest
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_CONFIG_ADDITIONAL_LOCATION: "optional:file:/opt/hapi-extra/"
+      HAPI_FHIR_SUBSCRIPTION_RESTHOOK_ENABLED: "true"
+      HAPI_FHIR_SUBSCRIPTION_IMMEDIATELY_QUEUED: "true"
+      hapi.fhir.fhir_version: R4
+      hapi.fhir.allow_cascading_deletes: "true"
+      hapi.fhir.allow_multiple_delete: "true"
+      hapi.fhir.subscription.resthook_enabled: "true"
+      hapi.fhir.subscription.immediately_queued: "true"
+    volumes:
+      - ./config/hapi:/opt/hapi-extra
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  neo4j_data:

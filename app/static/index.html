@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FHIR Case Management — Test UI</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface-2: #243044;
+      --border: #2d3f56;
+      --text: #e8eef5;
+      --muted: #8fa3bc;
+      --accent: #3b9eff;
+      --accent-dim: #2563a8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --pending: #94a3b8;
+      --radius: 10px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    header p { color: var(--muted); font-size: 0.85rem; }
+
+    .health {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--pending);
+    }
+
+    .dot.ok { background: var(--success); }
+    .dot.err { background: var(--danger); }
+
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr 340px;
+      gap: 1rem;
+      padding: 1rem;
+      max-width: 1500px;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-body { padding: 1rem; }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      margin-top: 0.75rem;
+    }
+
+    label:first-child { margin-top: 0; }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.9rem;
+    }
+
+    textarea { min-height: 72px; resize: vertical; }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 158, 255, 0.15);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    button {
+      padding: 0.55rem 0.9rem;
+      border: none;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-dim); }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) { background: var(--border); }
+
+    .btn-success { background: #059669; color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #047857; }
+
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.6rem;
+      font-size: 0.75rem;
+    }
+
+    .case-list { max-height: 520px; overflow-y: auto; }
+
+    .case-item {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .case-item:hover { background: var(--surface-2); }
+    .case-item.active { background: var(--surface-2); border-left: 3px solid var(--accent); }
+
+    .case-item h3 {
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .case-item .meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-Pending { background: #334155; color: var(--pending); }
+    .badge-AI_Review { background: #1e3a5f; color: #60a5fa; }
+    .badge-Pending_Approval { background: #422006; color: var(--warning); }
+    .badge-Approved { background: #064e3b; color: var(--success); }
+    .badge-Rejected { background: #450a0a; color: var(--danger); }
+
+    .empty {
+      padding: 2rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .detail-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+    }
+
+    .detail-row .key { color: var(--muted); }
+
+    .summary-box {
+      margin-top: 0.75rem;
+      padding: 0.85rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.86rem;
+      white-space: pre-wrap;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .section {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .section h4 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .audit-list {
+      max-height: 640px;
+      overflow-y: auto;
+    }
+
+    .audit-item {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+
+    .audit-item .time { color: var(--muted); font-size: 0.75rem; }
+    .audit-item .action { font-weight: 600; margin: 0.2rem 0; }
+
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      max-width: 380px;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      animation: slideIn 0.2s ease;
+    }
+
+    .toast.ok { background: #064e3b; border: 1px solid #059669; }
+    .toast.err { background: #450a0a; border: 1px solid #dc2626; }
+
+    @keyframes slideIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .loading { opacity: 0.6; pointer-events: none; }
+
+    .section-divider {
+      margin: 1.25rem 0 0.75rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .obs-list {
+      margin-top: 0.75rem;
+      max-height: 140px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .obs-list li { margin-bottom: 0.35rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>FHIR Case Management</h1>
+      <p>Test the case workflow end to end</p>
+    </div>
+    <div class="health">
+      <a href="/chat" style="color:var(--accent);text-decoration:none;margin-right:1rem;font-size:0.85rem">Open chat →</a>
+      <span class="dot" id="healthDot"></span>
+      <span id="healthText">Checking API…</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="panel-header">
+        <span>Cases</span>
+        <button class="btn-ghost" id="refreshCasesBtn">Refresh</button>
+      </div>
+      <div class="panel-body">
+        <form id="createCaseForm">
+          <label for="patientId">Patient ID</label>
+          <input id="patientId" value="1000" required />
+
+          <label for="caseTitle">Title</label>
+          <input id="caseTitle" value="Diabetes management review" required />
+
+          <label for="caseDescription">Description</label>
+          <textarea id="caseDescription">Review elevated glucose observations and recommend next steps.</textarea>
+
+          <div class="btn-row">
+            <button type="submit" class="btn-primary">Create case</button>
+          </div>
+        </form>
+
+        <div class="section-divider">Add FHIR observation</div>
+        <form id="addObservationForm">
+          <label for="obsPatientId">Patient ID</label>
+          <input id="obsPatientId" value="1000" required />
+
+          <label for="obsPreset">Observation type</label>
+          <select id="obsPreset" required>
+            <option value="2339-0|Glucose|mg/dL">Glucose (LOINC 2339-0)</option>
+            <option value="2160-0|Creatinine|mg/dL">Creatinine (LOINC 2160-0)</option>
+            <option value="8480-6|Systolic Blood Pressure|mmHg">Systolic BP (LOINC 8480-6)</option>
+          </select>
+
+          <label for="obsValue">Value</label>
+          <input id="obsValue" type="number" step="any" value="145" required />
+
+          <label for="obsDate">Effective date</label>
+          <input id="obsDate" type="date" required />
+
+          <div class="btn-row">
+            <button type="submit" class="btn-secondary">Add observation</button>
+            <button type="button" class="btn-ghost" id="loadObservationsBtn">View patient labs</button>
+          </div>
+          <ul class="obs-list" id="patientObsList"></ul>
+        </form>
+      </div>
+      <div class="case-list" id="caseList">
+        <div class="empty">No cases yet</div>
+      </div>
+    </section>
+
+    <section class="panel" id="detailPanel">
+      <div class="panel-header"><span>Case detail</span></div>
+      <div class="panel-body" id="caseDetail">
+        <div class="empty">Select a case to view details and run actions</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <span>Audit log</span>
+        <button class="btn-ghost" id="refreshAuditBtn">Refresh</button>
+      </div>
+      <div class="audit-list" id="auditList">
+        <div class="empty">No audit entries</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = "/api/v1";
+    let selectedCaseId = null;
+    let cases = [];
+
+    const OBS_PRESETS = {
+      "2339-0|Glucose|mg/dL": 145,
+      "2160-0|Creatinine|mg/dL": 1.4,
+      "8480-6|Systolic Blood Pressure|mmHg": 142,
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function toast(message, ok = true) {
+      const el = document.createElement("div");
+      el.className = `toast ${ok ? "ok" : "err"}`;
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    async function api(path, options = {}) {
+      const res = await fetch(`${API}${path}`, {
+        headers: { "Content-Type": "application/json", ...options.headers },
+        ...options,
+      });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!res.ok) {
+        const detail = data?.detail;
+        const msg = typeof detail === "string" ? detail : JSON.stringify(detail || data);
+        throw new Error(msg || `Request failed (${res.status})`);
+      }
+      return data;
+    }
+
+    function statusBadge(status) {
+      const key = status.replace(/ /g, "_");
+      return `<span class="badge badge-${key}">${status}</span>`;
+    }
+
+    function formatDate(value) {
+      if (!value) return "—";
+      return new Date(value).toLocaleString();
+    }
+
+    async function checkHealth() {
+      try {
+        const data = await fetch("/health").then((r) => r.json());
+        $("healthDot").className = "dot ok";
+        $("healthText").textContent = data.status === "ok" ? "API online" : "API degraded";
+      } catch {
+        $("healthDot").className = "dot err";
+        $("healthText").textContent = "API offline";
+      }
+    }
+
+    function renderCaseList() {
+      const list = $("caseList");
+      if (!cases.length) {
+        list.innerHTML = '<div class="empty">No cases yet — create one above</div>';
+        return;
+      }
+      list.innerHTML = cases.map((c) => `
+        <div class="case-item ${c.id === selectedCaseId ? "active" : ""}" data-id="${c.id}">
+          <h3>${escapeHtml(c.title)}</h3>
+          <div class="meta">
+            ${statusBadge(c.status)}
+            <span style="margin-left:0.4rem">Patient ${escapeHtml(c.patient_id)}</span>
+          </div>
+        </div>
+      `).join("");
+
+      list.querySelectorAll(".case-item").forEach((el) => {
+        el.addEventListener("click", () => selectCase(el.dataset.id));
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function observationLabel(observation) {
+      return observation.code?.text
+        || observation.code?.coding?.[0]?.display
+        || "Observation";
+    }
+
+    function observationValue(observation) {
+      if (observation.value_quantity?.value != null) {
+        const unit = observation.value_quantity.unit || "";
+        return `${observation.value_quantity.value} ${unit}`.trim();
+      }
+      if (observation.value_string) return observation.value_string;
+      if (observation.value_boolean != null) return String(observation.value_boolean);
+      return "—";
+    }
+
+    async function loadCases() {
+      cases = await api("/cases");
+      renderCaseList();
+      if (selectedCaseId && !cases.find((c) => c.id === selectedCaseId)) {
+        selectedCaseId = null;
+        $("caseDetail").innerHTML = '<div class="empty">Select a case to view details and run actions</div>';
+      }
+    }
+
+    async function selectCase(caseId) {
+      selectedCaseId = caseId;
+      renderCaseList();
+      await renderCaseDetail(caseId);
+      await loadAudit(caseId);
+    }
+
+    async function renderCaseDetail(caseId) {
+      const panel = $("caseDetail");
+      panel.classList.add("loading");
+
+      try {
+        const [c, transitions] = await Promise.all([
+          api(`/cases/${caseId}`),
+          api(`/cases/${caseId}/transitions`),
+        ]);
+
+        const patientName = c.patient?.name?.[0]
+          ? [...(c.patient.name[0].given || []), c.patient.name[0].family].filter(Boolean).join(" ")
+          : null;
+
+        let actions = "";
+
+        if (c.status === "Pending" && transitions.includes("AI_Review")) {
+          actions += `<button class="btn-primary" data-action="transition" data-status="AI_Review">Start AI review</button>`;
+        }
+
+        if (c.status === "AI_Review") {
+          actions += `
+            <div class="section" style="margin-top:0;padding-top:0;border-top:none">
+              <h4>AI clinical review</h4>
+              <label for="clinicalQuery">Clinical query</label>
+              <textarea id="clinicalQuery">Are there concerns about diabetes based on available observations?</textarea>
+              <div class="btn-row">
+                <button class="btn-primary" data-action="ai-review">Run AI review</button>
+              </div>
+            </div>`;
+        }
+
+        if (c.status === "Pending_Approval") {
+          actions += `
+            <div class="section" style="margin-top:0;padding-top:0;border-top:none">
+              <h4>Human approval</h4>
+              <label for="approvalReason">Reason</label>
+              <input id="approvalReason" value="Clinical criteria met" />
+              <div class="btn-row">
+                <button class="btn-success" data-action="approve">Approve</button>
+                <button class="btn-danger" data-action="reject">Reject</button>
+              </div>
+            </div>`;
+        }
+
+        const observations = (c.observations || [])
+          .map((o) => `<li>${escapeHtml(observationLabel(o))}: ${escapeHtml(observationValue(o))}</li>`)
+          .join("") || "<li>No observations loaded</li>";
+
+        panel.innerHTML = `
+          <div class="detail-grid">
+            <div class="detail-row"><span class="key">Status</span><span>${statusBadge(c.status)}</span></div>
+            <div class="detail-row"><span class="key">Case ID</span><span style="font-family:monospace;font-size:0.8rem">${c.id}</span></div>
+            <div class="detail-row"><span class="key">Patient</span><span>${escapeHtml(patientName || c.patient_id)}</span></div>
+            <div class="detail-row"><span class="key">Title</span><span>${escapeHtml(c.title)}</span></div>
+            <div class="detail-row"><span class="key">Description</span><span>${escapeHtml(c.description || "—")}</span></div>
+            <div class="detail-row"><span class="key">Updated</span><span>${formatDate(c.updated_at)}</span></div>
+          </div>
+
+          <div class="section">
+            <h4>Observations</h4>
+            <ul style="padding-left:1.1rem;font-size:0.86rem;color:var(--muted)">${observations}</ul>
+          </div>
+
+          ${c.ai_summary ? `
+            <div class="section">
+              <h4>AI summary</h4>
+              <div class="summary-box">${escapeHtml(c.ai_summary)}</div>
+            </div>` : ""}
+
+          ${actions ? `<div class="section"><h4>Actions</h4><div class="btn-row" id="actionButtons">${actions}</div></div>` : ""}
+        `;
+
+        bindDetailActions(caseId);
+      } catch (err) {
+        panel.innerHTML = `<div class="empty" style="color:var(--danger)">${escapeHtml(err.message)}</div>`;
+      } finally {
+        panel.classList.remove("loading");
+      }
+    }
+
+    function bindDetailActions(caseId) {
+      const transitionBtn = document.querySelector('[data-action="transition"]');
+      if (transitionBtn) {
+        transitionBtn.addEventListener("click", async () => {
+          try {
+            await api(`/cases/${caseId}/transition`, {
+              method: "POST",
+              body: JSON.stringify({ target_status: transitionBtn.dataset.status }),
+            });
+            toast("Moved to AI Review");
+            await refreshAll();
+            await selectCase(caseId);
+          } catch (err) { toast(err.message, false); }
+        });
+      }
+
+      const aiBtn = document.querySelector('[data-action="ai-review"]');
+      if (aiBtn) {
+        aiBtn.addEventListener("click", async () => {
+          aiBtn.disabled = true;
+          aiBtn.textContent = "Running…";
+          try {
+            const query = $("clinicalQuery").value;
+            await api(`/cases/${caseId}/ai-review`, {
+              method: "POST",
+              body: JSON.stringify({ clinical_query: query }),
+            });
+            toast("AI review complete — awaiting your approval");
+            await refreshAll();
+            await selectCase(caseId);
+          } catch (err) {
+            toast(err.message, false);
+            aiBtn.disabled = false;
+            aiBtn.textContent = "Run AI review";
+          }
+        });
+      }
+
+      document.querySelector('[data-action="approve"]')?.addEventListener("click", () =>
+        submitApproval(caseId, true));
+      document.querySelector('[data-action="reject"]')?.addEventListener("click", () =>
+        submitApproval(caseId, false));
+    }
+
+    async function submitApproval(caseId, approved) {
+      try {
+        const reason = $("approvalReason")?.value || null;
+        await api(`/cases/${caseId}/human-approval`, {
+          method: "POST",
+          body: JSON.stringify({ approved, reason }),
+        });
+        toast(approved ? "Case approved" : "Case rejected");
+        await refreshAll();
+        await selectCase(caseId);
+      } catch (err) { toast(err.message, false); }
+    }
+
+    async function loadAudit(caseId = null) {
+      const path = caseId ? `/audit?entity_id=${caseId}&limit=30` : "/audit?limit=30";
+      const logs = await api(path);
+      const list = $("auditList");
+
+      if (!logs.length) {
+        list.innerHTML = '<div class="empty">No audit entries</div>';
+        return;
+      }
+
+      list.innerHTML = logs.map((log) => `
+        <div class="audit-item">
+          <div class="time">${formatDate(log.timestamp)}</div>
+          <div class="action">${escapeHtml(log.action)}</div>
+          <div>${escapeHtml(log.message || "")}</div>
+        </div>
+      `).join("");
+    }
+
+    async function refreshAll() {
+      await loadCases();
+      await loadAudit(selectedCaseId);
+    }
+
+    $("createCaseForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const created = await api("/cases", {
+          method: "POST",
+          body: JSON.stringify({
+            patient_id: $("patientId").value,
+            title: $("caseTitle").value,
+            description: $("caseDescription").value || null,
+          }),
+        });
+        toast("Case created");
+        await refreshAll();
+        await selectCase(created.id);
+      } catch (err) { toast(err.message, false); }
+    });
+
+    $("patientId").addEventListener("input", (e) => {
+      $("obsPatientId").value = e.target.value;
+    });
+
+    $("obsPreset").addEventListener("change", (e) => {
+      const preset = OBS_PRESETS[e.target.value];
+      if (preset !== undefined) $("obsValue").value = preset;
+    });
+
+    function parsePreset(value) {
+      const [loinc_code, display, unit] = value.split("|");
+      return { loinc_code, display, unit };
+    }
+
+    async function loadPatientObservations() {
+      const patientId = $("obsPatientId").value.trim();
+      if (!patientId) return;
+      const list = $("patientObsList");
+      try {
+        const observations = await api(`/patients/${patientId}/observations`);
+        if (!observations.length) {
+          list.innerHTML = "<li>No observations for this patient yet.</li>";
+          return;
+        }
+        list.innerHTML = observations.map((o) =>
+          `<li>${escapeHtml(observationLabel(o))}: ${escapeHtml(observationValue(o))}</li>`
+        ).join("");
+      } catch (err) {
+        list.innerHTML = `<li>${escapeHtml(err.message)}</li>`;
+      }
+    }
+
+    $("addObservationForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const patientId = $("obsPatientId").value.trim();
+      const preset = parsePreset($("obsPreset").value);
+      try {
+        await api(`/patients/${patientId}/observations`, {
+          method: "POST",
+          body: JSON.stringify({
+            loinc_code: preset.loinc_code,
+            display: preset.display,
+            value: Number($("obsValue").value),
+            unit: preset.unit,
+            effective_date: $("obsDate").value,
+          }),
+        });
+        toast(`Added ${preset.display} for patient ${patientId}`);
+        await loadPatientObservations();
+      } catch (err) { toast(err.message, false); }
+    });
+
+    $("loadObservationsBtn").addEventListener("click", loadPatientObservations);
+
+    $("obsDate").value = new Date().toISOString().slice(0, 10);
+
+    $("refreshCasesBtn").addEventListener("click", refreshAll);
+    $("refreshAuditBtn").addEventListener("click", () => loadAudit(selectedCaseId));
+
+    checkHealth();
+    refreshAll();
+    loadPatientObservations();
+    setInterval(checkHealth, 15000);
+  </script>
+</body>
+</html>

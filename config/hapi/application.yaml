@@ -1,0 +1,8 @@
+# Additional HAPI config mounted into the container.
+# Enables REST-hook subscriptions so Observation creates trigger CMS webhooks.
+hapi:
+  fhir:
+    subscription:
+      resthook_enabled: true
+      immediately_queued: true
+      polling_interval_ms: 5000
