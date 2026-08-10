@@ -54,7 +54,17 @@ seed_neo4j() {
     cypher-shell -u neo4j -p "${NEO4J_PASSWORD:-password}" -f /import/init.cypher
 }
 
+sync_repo() {
+  if [[ ! -d "${ROOT}/.git" ]]; then
+    return 0
+  fi
+  echo "Syncing repo to origin/main (keeps local .env)…"
+  git fetch origin main
+  git reset --hard origin/main
+}
+
 up() {
+  sync_repo
   if [[ ! -f "${ROOT}/.env" ]]; then
     echo "Missing .env — copy .env.greyflow-app.example to .env and edit." >&2
     exit 1
