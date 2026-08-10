@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Capability Explorer — Cardiac Care Coordination (Jane Doe)</title>
+  <style>
+    :root {
+      --bg: #050810;
+      --panel: #0e1524;
+      --panel-2: #141e32;
+      --panel-3: #1a2740;
+      --border: #2a3a58;
+      --text: #eef3ff;
+      --muted: #8fa3c7;
+      --accent: #6366f1;
+      --accent-2: #22d3ee;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.15), transparent 40%),
+        radial-gradient(circle at 90% 100%, rgba(34, 211, 238, 0.08), transparent 35%),
+        var(--bg);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.1rem 1.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 { font-size: 1.2rem; font-weight: 650; letter-spacing: -0.02em; }
+    header .subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; max-width: 62ch; line-height: 1.5; }
+    .header-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+    .chip {
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      white-space: nowrap;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1rem;
+      padding: 1rem 1.75rem;
+      min-height: 0;
+    }
+    .nav {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .nav-head {
+      padding: 0.75rem 1rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-list { overflow-y: auto; padding: 0.45rem; flex: 1; }
+    .nav-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      padding: 0.65rem 0.75rem;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 0.25rem;
+      opacity: 0.55;
+      transition: opacity 0.25s, background 0.25s;
+    }
+    .nav-item:hover { opacity: 0.85; background: var(--panel-2); }
+    .nav-item.active {
+      opacity: 1;
+      background: var(--panel-2);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+    .nav-item.done { opacity: 0.8; }
+    .nav-cap { font-size: 0.65rem; color: var(--accent-2); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .nav-title { font-size: 0.82rem; font-weight: 600; margin-top: 0.15rem; line-height: 1.3; }
+    .content { display: flex; flex-direction: column; gap: 1rem; min-height: 0; overflow-y: auto; }
+    .hero {
+      background: linear-gradient(135deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem 1.75rem;
+    }
+    .hero-cap {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      margin-bottom: 0.5rem;
+    }
+    .hero h2 { font-size: clamp(1.4rem, 2.5vw, 2rem); letter-spacing: -0.03em; line-height: 1.2; }
+    .hero .tagline { margin-top: 0.65rem; color: var(--muted); font-size: 0.98rem; line-height: 1.55; max-width: 70ch; }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+    }
+    .card h3 {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.65rem;
+    }
+    .card p, .card li { font-size: 0.86rem; line-height: 1.55; color: #c5d4ef; }
+    .card ul { padding-left: 1.1rem; }
+    .card li { margin-bottom: 0.35rem; }
+    .card code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      color: var(--accent-2);
+      word-break: break-all;
+    }
+    .live-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .live-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+    }
+    .live-head span { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .status {
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .status.pending { background: rgba(245,158,11,0.12); color: var(--warning); border-color: rgba(245,158,11,0.35); }
+    .status.error { background: rgba(239,68,68,0.12); color: var(--danger); border-color: rgba(239,68,68,0.35); }
+    .live-body { padding: 1rem; }
+    .live-body pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      color: #b8c9e8;
+      max-height: 220px;
+      overflow: auto;
+    }
+    .narration {
+      padding: 0.85rem 1.75rem;
+      border-top: 1px solid var(--border);
+      background: rgba(99, 102, 241, 0.08);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: #dbeafe;
+      min-height: 3.5rem;
+    }
+    .narration-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+    footer {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.75rem 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .progress { flex: 1; height: 5px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+    .progress > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.5s; }
+    footer button {
+      padding: 0.5rem 0.95rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    footer button.primary { background: var(--accent); border-color: transparent; color: white; font-weight: 600; }
+    footer button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hidden { display: none !important; }
+    @media (max-width: 1100px) { .grid-3 { grid-template-columns: 1fr; } main { grid-template-columns: 1fr; } .nav { max-height: 200px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Capability Explorer</h1>
+        <p class="subtitle">
+          Detailed walkthrough of all 11 capabilities — new use case:
+          <strong>Cardiac Care Coordination</strong> for Jane Doe (Member M1001 · Patient P1001 · Payer PAYER01).
+          Each step explains business value, architecture, and runs a live API call.
+        </p>
+      </div>
+      <div class="header-meta">
+        <span class="chip" id="phaseChip">Ready</span>
+        <span class="chip">Jane Doe · M1001</span>
+        <span class="chip"><a href="/demo" style="color:inherit;text-decoration:none">Quick demo →</a></span>
+      </div>
+    </header>
+
+    <main>
+      <nav class="nav">
+        <div class="nav-head">Capabilities 01 – 11</div>
+        <div class="nav-list" id="navList"></div>
+      </nav>
+
+      <div class="content">
+        <section class="hero">
+          <div class="hero-cap" id="heroCap">Introduction</div>
+          <h2 id="heroTitle">Cardiac Care Coordination Journey</h2>
+          <p class="tagline" id="heroTagline"></p>
+        </section>
+
+        <div class="grid-3">
+          <article class="card">
+            <h3>Business Purpose</h3>
+            <div id="cardBusiness"></div>
+          </article>
+          <article class="card">
+            <h3>How It Works</h3>
+            <div id="cardTechnical"></div>
+          </article>
+          <article class="card">
+            <h3>API &amp; Integration</h3>
+            <div id="cardApi"></div>
+          </article>
+        </div>
+
+        <section class="live-panel">
+          <div class="live-head">
+            <span>Live Demonstration</span>
+            <span class="status pending" id="liveStatus">Waiting</span>
+          </div>
+          <div class="live-body">
+            <pre id="liveResult">Press "Run This Step" or start the full tour.</pre>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="narration">
+      <div class="narration-label">Narration</div>
+      <div id="narrationText">Use this tour for executive briefings, capability deep-dives, or narrated video recording.</div>
+    </div>
+
+    <footer>
+      <span id="stepLabel">Step 1 / 13</span>
+      <div class="progress"><div id="progressFill"></div></div>
+      <button id="prevBtn">Previous</button>
+      <button id="runBtn">Run This Step</button>
+      <button id="pauseBtn">Pause</button>
+      <button class="primary" id="tourBtn">Start Full Tour</button>
+    </footer>
+  </div>
+
+  <div id="demo-complete" class="hidden"></div>
+
+  <script>
+    const API = "/api/v1";
+    const MEMBER_ID = "M1001";
+    const PATIENT_ID = "P1001";
+    const PAYER_ID = "PAYER01";
+    const PROVIDER_NPI = "1234567890";
+    const SERVICE_DATE = new Date().toISOString().slice(0, 10);
+
+    const params = new URLSearchParams(location.search);
+    const AUTOPLAY = params.get("autoplay") === "1";
+    const FAST = params.get("fast") === "1" || params.get("record") === "1" || params.get("record") === "narrated";
+    const RECORD = params.get("record") === "1";
+    const NARRATED = params.get("record") === "narrated";
+    const PACE = NARRATED ? 38000 : (RECORD ? 1600 : (params.get("pace") === "slow" ? (FAST ? 3500 : 9000) : (FAST ? 2000 : 5500)));
+    const READ_TIME = NARRATED ? 7000 : (RECORD ? 1000 : (params.get("pace") === "slow" ? (FAST ? 2500 : 6000) : (FAST ? 1500 : 3500)));
+
+    let caseId = null;
+    let paused = false;
+    let currentIndex = 0;
+    let touring = false;
+
+    const STEPS = [
+      {
+        cap: "Overview",
+        phase: "Scenario",
+        title: "Cardiac Care Coordination — Jane Doe",
+        tagline: "Jane presents with chest pain and is admitted for observation. She has diabetes and hypertension. This tour walks each capability in order (01→11) with business context and live API calls.",
+        narration: "Welcome to the Capability Explorer. We follow Jane Doe through cardiac care coordination — eligibility, claims, clinical exchange, prior authorization, care gaps, payment integrity, and executive reporting.",
+        business: "<p>Demonstrate how eleven integrated capabilities support a single member episode from intake through payment and analytics — without siloed point solutions.</p>",
+        technical: "<ul><li>FastAPI orchestrates each capability service</li><li>Neo4j grounds clinical and claims intelligence</li><li>LangGraph powers prior auth with human-in-the-loop</li><li>PostgreSQL audit ledger feeds Cap 11 scorecard</li></ul>",
+        api: "<p><strong>Member:</strong> M1001 · <strong>Patient:</strong> P1001 · <strong>Payer:</strong> PAYER01</p><p>Open <code>/dashboard</code> after the tour for live metrics.</p>",
+        run: async () => ({ status: "ready", detail: "Scenario loaded. Jane Doe · cardiac observation · comorbid DM + HTN." }),
+      },
+      {
+        cap: "Capability 01",
+        phase: "Foundation",
+        title: "Member Eligibility — X12 270 & 834",
+        tagline: "Confirms active coverage before cardiology services and registers enrollment updates on the product spine.",
+        narration: "Capability One handles member eligibility. The two-seventy inquiry confirms Jane is actively covered before her cardiology visit. The eight-thirty-four enrollment transaction validates demographics and plan assignment. Both flows write to the audit ledger.",
+        business: "<p>Prevents services to ineligible members and ensures accurate enrollment before claims or authorization. Reduces retroactive denials and provider abrasion.</p>",
+        technical: "<ul><li>270: real-time eligibility inquiry with mock 271 response</li><li>834: enrollment validation with acceptance/rejection rules</li><li>Invalid member IDs or missing fields return structured exceptions</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/01/eligibility/270</code></p><p><code>POST /api/v1/capabilities/01/eligibility/834</code></p>",
+        run: async () => {
+          const r270 = await api("POST", "/capabilities/01/eligibility/270", {
+            member_id: MEMBER_ID, payer_id: PAYER_ID, provider_npi: PROVIDER_NPI, service_date: SERVICE_DATE,
+          });
+          const r834 = await api("POST", "/capabilities/01/eligibility/834", {
+            member_id: MEMBER_ID, payer_id: PAYER_ID, plan_id: "PLAN-GOLD",
+            coverage_start_date: "2026-01-01", subscriber_first_name: "Jane", subscriber_last_name: "Doe",
+          });
+          return {
+            status: `270: ${r270.eligibility_status} · 834: ${r834.validation_status}`,
+            detail: `=== 270 Eligibility ===\n${JSON.stringify(r270, null, 2)}\n\n=== 834 Enrollment ===\n${JSON.stringify(r834, null, 2)}`,
+          };
+        },
+      },
+      {
+        cap: "Capability 02",
+        phase: "Automate",
+        title: "Claims Intake & Adjudication",
+        tagline: "Professional claim for cardiology office visit + ECG — pricing rules and duplicate detection via Neo4j.",
+        narration: "Capability Two adjudicates Jane's professional claim. Neo4j checks payer contract rates for each procedure code and scans for duplicate claims on the same member, date, and service combination.",
+        business: "<p>Automates first-pass adjudication with transparent reason codes. Flags duplicates and contract violations before payment.</p>",
+        technical: "<ul><li><code>check_claim_pricing_rules</code> — contract rate vs billed amount</li><li><code>check_duplicate_claims</code> — member + date + procedure match</li><li>Line-level status: approved, adjusted, or denied</li><li>Mock X12 835 remittance advice generated</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/02/claims/adjudicate</code></p><p>Body: claim_id, member_id, payer_id, service_date, line_items[]</p>",
+        run: async () => {
+          await ensurePatient();
+          const data = await api("POST", "/capabilities/02/claims/adjudicate", {
+            claim_id: "CLM-CARD-" + Date.now(),
+            member_id: MEMBER_ID, payer_id: PAYER_ID, provider_npi: PROVIDER_NPI,
+            service_date: SERVICE_DATE,
+            line_items: [
+              { procedure_code: "99213", billed_amount: 125, units: 1 },
+              { procedure_code: "93000", billed_amount: 35, units: 1 },
+            ],
+          });
+          return {
+            status: data.adjudication_status,
+            detail: `Duplicate detected: ${data.duplicate_detected}\n\n${JSON.stringify(data.line_adjudications, null, 2)}`,
+          };
+        },
+      },
+      {
+        cap: "Capability 03",
+        phase: "Foundation",
+        title: "Real-Time HL7 ADT Clinical Exchange",
+        tagline: "Memorial Hospital sends ADT^A01 — chest pain observation admission for patient P1001.",
+        narration: "Capability Three ingests HL seven A D T messages in real time. Jane's observation admission is parsed for patient identifier and event type, enabling immediate downstream utilization triggers.",
+        business: "<p>Closes the gap between hospital ADT feeds and payer operations. Enables same-day UM response to admissions.</p>",
+        technical: "<ul><li>MSH segment: message type must start with ADT</li><li>PID-3: patient identifier extraction</li><li>Rejected messages return structured rejection reasons</li><li>202 Accepted — async-safe ingestion pattern</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/03/adt</code></p><p>Content-Type: text/plain · raw HL7 payload</p>",
+        run: async () => {
+          const adt = [
+            "MSH|^~\\&|CARDIO_HIS|MEMORIAL|FHIR-CMS|PAYER|20260808103000||ADT^A01|ADM1001|P|2.5",
+            "EVN|A01|20260808103000",
+            `PID|1||${PATIENT_ID}^^^MRN||DOE^JANE^M||19680322|F`,
+            "PV1|1|I|OBS^02^01||||1234567890^CHEN^SARAH",
+          ].join("\r");
+          const data = await apiRaw("POST", "/capabilities/03/adt", adt, "text/plain");
+          return { status: data.processing_status, detail: JSON.stringify(data, null, 2) };
+        },
+      },
+      {
+        cap: "Capability 04",
+        phase: "Foundation",
+        title: "Provider Validation — NPI & Credentialing",
+        tagline: "Cardiologist NPI cross-referenced against master directory for network and compliance status.",
+        narration: "Capability Four validates the attending cardiologist. National Provider Identifier and tax identifier are checked against the master directory before authorization or payment proceeds.",
+        business: "<p>Prevents payment to out-of-network or non-compliant providers. Supports fraud prevention and network integrity.</p>",
+        technical: "<ul><li>Master directory lookup by NPI</li><li>Tax ID mismatch detection</li><li>Network status: active, inactive, not_found</li><li>Credentialing: compliant, expired, pending</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/04/providers/validate</code></p><p>Body: npi, tax_id, provider_name</p>",
+        run: async () => {
+          const data = await api("POST", "/capabilities/04/providers/validate", {
+            npi: PROVIDER_NPI, tax_id: "12-3456789", provider_name: "Dr. Sarah Chen",
+          });
+          return {
+            status: `${data.network_status} / ${data.credentialing_status}`,
+            detail: data.validation_notes.join("\n"),
+          };
+        },
+      },
+      {
+        cap: "Capability 05",
+        phase: "Automate",
+        title: "Prior Authorization — LangGraph + Neo4j",
+        tagline: "UM case auto-spawned for cardiac catheterization. LangGraph agent grounds recommendations in the clinical graph.",
+        narration: "Capability Five runs prior authorization through LangGraph. A utilization case is created, the agent queries Neo4j for comorbidities and reference ranges, then pauses at human approval.",
+        business: "<p>Accelerates UM decisions with AI-grounded clinical rationale while preserving human oversight for high-stakes authorizations.</p>",
+        technical: "<ul><li>Case state: Pending → AI_Review → Pending_Approval</li><li>LangGraph tools: disease lookup, reference ranges</li><li><code>interrupt()</code> human-in-the-loop checkpoint</li><li>Full audit trail in PostgreSQL</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/05/prior-auth/evaluate</code></p><p>Body: patient_id, member_id, clinical_query</p>",
+        run: async () => {
+          if (FAST) {
+            caseId = "explorer-fast-case";
+            await sleep(800);
+            return {
+              status: "Pending_Approval (simulated)",
+              detail: "LangGraph summary:\nJane Doe — elevated BP (158 mmHg) with DM + HTN comorbidity.\nNeo4j: Type 2 Diabetes, Hypertension linked.\nRecommendation: approve cardiac cath with care management.",
+            };
+          }
+          await api("POST", `/patients/${PATIENT_ID}/observations`, {
+            loinc_code: "8480-6", display: "Systolic BP", value: 158, unit: "mmHg", effective_date: SERVICE_DATE,
+          }).catch(() => null);
+          setLiveStatus("LangGraph running (30–120s)…", "pending");
+          const data = await api("POST", "/capabilities/05/prior-auth/evaluate", {
+            patient_id: PATIENT_ID, member_id: MEMBER_ID,
+            clinical_query: "Is cardiac catheterization medically necessary given comorbidities and blood pressure?",
+            title: "Cardiac cath prior auth — Jane Doe",
+            description: "Chest pain observation with hypertension and Type 2 diabetes.",
+          }, 300000);
+          caseId = data.case_id;
+          return { status: data.status, detail: (data.ai_summary || data.validation_notes.join("\n")).slice(0, 1500) };
+        },
+      },
+      {
+        cap: "Capability 06",
+        phase: "Automate",
+        title: "Appeals & Grievances — Structured Draft",
+        tagline: "Generates audit-ready appeal recommendation; multi-system risk flagged from AI clinical summary.",
+        narration: "Capability Six drafts structured appeals recommendations. Multi-system risk is detected when multiple clinical keywords appear in the AI summary, triggering enhanced review workflows.",
+        business: "<p>Standardizes appeal responses and reduces manual drafting time while maintaining compliance-ready documentation.</p>",
+        technical: "<ul><li>Reads case AI summary from Cap 05 workflow</li><li>Risk keyword detection (diabetes, hypertension, kidney, etc.)</li><li>Structured draft with case ID and audit trace flag</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/06/appeals/draft</code></p><p>Body: case_id (from Cap 05)</p>",
+        run: async () => {
+          if (FAST || !caseId || caseId === "explorer-fast-case") {
+            return {
+              status: "multi-system risk (simulated)",
+              detail: "APPEALS DRAFT\nCase: explorer-fast-case\nMulti-system risk: YES (diabetes + hypertension)\nAudit trace ready: true\nNext: human reviewer via /human-approval",
+            };
+          }
+          const data = await api("POST", "/capabilities/06/appeals/draft", { case_id: caseId });
+          return {
+            status: data.multi_system_risk_detected ? "multi-system risk" : "standard",
+            detail: data.draft_summary.slice(0, 1200),
+          };
+        },
+      },
+      {
+        cap: "Capability 07",
+        phase: "Intelligence",
+        title: "Care Management & Care Gap Analytics",
+        tagline: "Neo4j comorbidity risk score + open HEDIS measures for care coordinator outreach.",
+        narration: "Capability Seven analyzes Jane's care gaps. Neo4j computes comorbidity risk from chronic conditions and surfaces open quality measures such as blood pressure control.",
+        business: "<p>Prioritizes care coordinator outreach for high-risk members. Closes quality measure gaps that affect Star ratings and member outcomes.</p>",
+        technical: "<ul><li><code>calculate_comorbidity_risk_scores</code> — graph traversal</li><li><code>find_care_gaps</code> — measure lookback and priority</li><li>Risk levels: low, moderate, high, critical</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/07/care-gaps/analyze</code></p><p>Body: member_id or include_all_members</p>",
+        run: async () => {
+          const data = await api("POST", "/capabilities/07/care-gaps/analyze", { member_id: MEMBER_ID });
+          const risk = data.comorbidity_risks[0];
+          return {
+            status: risk ? `score ${risk.comorbidity_risk_score} (${risk.risk_level})` : "seed Neo4j",
+            detail: `${data.care_gaps.length} gap(s), ${data.high_priority_gap_count} high-priority\n\n` +
+              (risk ? JSON.stringify({ risk, gaps: data.care_gaps }, null, 2) : "Run: docker compose exec neo4j cypher-shell -f /import/init.cypher"),
+          };
+        },
+      },
+      {
+        cap: "Capability 08",
+        phase: "Intelligence",
+        title: "Encounter Normalization — CMS Reporting",
+        tagline: "ICD-10 diagnoses and CPT procedures normalized for regulatory submission readiness.",
+        narration: "Capability Eight normalizes encounter data for C M S reporting. Diagnosis and procedure codes are validated and mapped for clean regulatory submission.",
+        business: "<p>Improves data quality for CMS submissions and reduces manual coding cleanup.</p>",
+        technical: "<ul><li>Diagnosis codes → normalized ICD-10 entries</li><li>Procedure codes → CPT alignment</li><li>cms_ready flag when both present</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/08/encounters/normalize</code></p>",
+        run: async () => {
+          const data = await api("POST", "/capabilities/08/encounters/normalize", {
+            member_id: MEMBER_ID, patient_id: PATIENT_ID,
+            diagnosis_codes: ["I20", "E11", "I10"],
+            procedure_codes: ["99213", "93000", "93458"],
+            service_date: SERVICE_DATE,
+          });
+          return {
+            status: data.cms_ready ? "CMS ready" : "incomplete",
+            detail: JSON.stringify({ diagnoses: data.normalized_diagnoses, procedures: data.normalized_procedures, notes: data.validation_notes }, null, 2),
+          };
+        },
+      },
+      {
+        cap: "Capability 09",
+        phase: "Intelligence",
+        title: "Third-Party Liability (TPL) Screening",
+        tagline: "Confirms primary payer status before disbursement; scans subrogation targets.",
+        narration: "Capability Nine performs third-party liability screening. Primary payer status is confirmed and subrogation targets are identified when accident or other coverage indicators are present.",
+        business: "<p>Prevents incorrect primary payment when another payer should be liable. Protects subrogation recovery rights.</p>",
+        technical: "<ul><li>accident_related → auto liability carrier target</li><li>other_coverage_indicator → COB review</li><li>Member ID suffix SUB → workers comp subrogation</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/09/tpl/check</code></p>",
+        run: async () => {
+          const data = await api("POST", "/capabilities/09/tpl/check", {
+            member_id: MEMBER_ID, payer_id: PAYER_ID, accident_related: false,
+          });
+          return { status: data.primary_payer_status, detail: JSON.stringify(data, null, 2) };
+        },
+      },
+      {
+        cap: "Capability 10",
+        phase: "Intelligence",
+        title: "Payment Integrity Screening",
+        tagline: "Duplicate payment anomaly on CLM-1001 — two posted payments detected in Neo4j graph.",
+        narration: "Capability Ten finds payment integrity anomalies. For Jane Doe, Neo4j detects duplicate payments against the same claim — a high-severity anomaly requiring investigation.",
+        business: "<p>Reduces fraud, waste, and abuse leakage. Surfaces duplicate payments and clinical-payment mismatches before financial close.</p>",
+        technical: "<ul><li><code>find_duplicate_payments</code> — same claim, multiple payments</li><li><code>find_clinical_gap_payment_flags</code> — clinical mismatch</li><li>Severity scoring for investigation queues</li></ul>",
+        api: "<p><code>POST /api/v1/capabilities/10/payment-integrity/detect</code></p>",
+        run: async () => {
+          const data = await api("POST", "/capabilities/10/payment-integrity/detect", {
+            member_id: MEMBER_ID, payer_id: PAYER_ID, lookback_days: 90,
+          });
+          return {
+            status: `${data.anomaly_count} anomaly(ies)`,
+            detail: JSON.stringify({ duplicates: data.duplicate_payments, flags: data.clinical_gap_flags, notes: data.validation_notes }, null, 2),
+          };
+        },
+      },
+      {
+        cap: "Capability 11",
+        phase: "Optimize",
+        title: "Enterprise Data Warehouse & Scorecard",
+        tagline: "Balanced scorecard from PostgreSQL audit ledger — cycle times, approvals, exceptions, AI tracking.",
+        narration: "Capability Eleven aggregates all transactional handoffs into an executive balanced scorecard. Cycle times, approval ratios, exception rates, and LangGraph review counts feed the live dashboard.",
+        business: "<p>Gives executives real-time visibility into operational, clinical, financial, and compliance KPIs from a single audit source of truth.</p>",
+        technical: "<ul><li>Aggregates audit logs by action and entity type</li><li>Case cycle time: created → AI review → human decision</li><li>Exception taxonomy across all capabilities</li><li>Model tracking: prior_auth + claims review modes</li></ul>",
+        api: "<p><code>GET /api/v1/capabilities/11/reporting/scorecard</code></p><p>Dashboard UI: <code>/dashboard</code></p>",
+        run: async () => {
+          const data = await api("GET", "/capabilities/11/reporting/scorecard?lookback_days=7");
+          return {
+            status: `${data.audit_exceptions.total_events} audit events`,
+            detail: [
+              `Approval ratio: ${((data.approval_denial.approval_ratio || 0) * 100).toFixed(1)}%`,
+              `Exception rate: ${((data.audit_exceptions.exception_rate || 0) * 100).toFixed(1)}%`,
+              `AI reviews: ${data.model_tracking.ai_review_count}`,
+              `Avg cycle (hr): ${data.cycle_times.avg_total_cycle_hours ?? "—"}`,
+              `Completed cases: ${data.cycle_times.sample_size}`,
+            ].join("\n"),
+          };
+        },
+      },
+      {
+        cap: "Complete",
+        phase: "Finale",
+        title: "Tour Complete — All 11 Capabilities Demonstrated",
+        tagline: "Every handoff is auditable. Explore the executive dashboard or re-run individual steps from the sidebar.",
+        narration: "This completes the Capability Explorer. Each capability was explained in business and technical terms with live API demonstrations. Visit the dashboard for interactive scorecard metrics.",
+        business: "<p>Use this tour for onboarding, RFP demos, and architecture reviews. Pair with the quick journey demo at <code>/demo</code> for a faster narrative.</p>",
+        technical: "<ul><li>Record video: <code>python3 scripts/record_capability_explorer_demo.py --fast</code></li><li>Add narration: <code>python3 scripts/add_voice_commentary.py --narration explorer</code></li></ul>",
+        api: "<p><code>/demo/explorer</code> · <code>/demo</code> · <code>/dashboard</code> · <code>/docs</code></p>",
+        run: async () => {
+          document.getElementById("demo-complete").classList.remove("hidden");
+          if (!FAST && caseId && caseId !== "explorer-fast-case") {
+            try {
+              await api("POST", `/cases/${caseId}/human-approval`, {
+                approved: true, reason: "Cardiac cath authorized with care management follow-up.",
+              });
+            } catch (_) { /* optional cleanup */ }
+          }
+          return { status: "complete", detail: "All 11 capabilities demonstrated.\nDashboard: http://localhost:8000/dashboard" };
+        },
+      },
+    ];
+
+    function buildNav() {
+      document.getElementById("navList").innerHTML = STEPS.map((step, i) => `
+        <button type="button" class="nav-item" id="nav-${i}" data-index="${i}">
+          <div class="nav-cap">${step.cap}</div>
+          <div class="nav-title">${step.title}</div>
+        </button>
+      `).join("");
+      document.querySelectorAll(".nav-item").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          currentIndex = Number(btn.dataset.index);
+          renderStep(currentIndex, false);
+        });
+      });
+    }
+
+    function renderStep(index, keepResult = true) {
+      const step = STEPS[index];
+      document.getElementById("phaseChip").textContent = step.phase;
+      document.getElementById("heroCap").textContent = step.cap;
+      document.getElementById("heroTitle").textContent = step.title;
+      document.getElementById("heroTagline").textContent = step.tagline;
+      document.getElementById("cardBusiness").innerHTML = step.business;
+      document.getElementById("cardTechnical").innerHTML = step.technical;
+      document.getElementById("cardApi").innerHTML = step.api;
+      document.getElementById("narrationText").textContent = step.narration;
+      document.getElementById("stepLabel").textContent = `Step ${index + 1} / ${STEPS.length}`;
+      document.getElementById("progressFill").style.width = `${((index + 1) / STEPS.length) * 100}%`;
+      document.querySelectorAll(".nav-item").forEach((el, i) => {
+        el.classList.toggle("active", i === index);
+        el.classList.toggle("done", i < index);
+      });
+      if (!keepResult) setLiveStatus("Ready — click Run This Step", "pending");
+    }
+
+    function setLiveStatus(text, kind = "ok") {
+      const el = document.getElementById("liveStatus");
+      el.textContent = text;
+      el.className = "status" + (kind === "pending" ? " pending" : kind === "error" ? " error" : "");
+    }
+
+    async function api(method, path, body, timeout = 60000) {
+      const res = await fetch(`${API}${path}`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(timeout),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail ? JSON.stringify(data.detail) : res.statusText);
+      return data;
+    }
+
+    async function apiRaw(method, path, body, type) {
+      const res = await fetch(`${API}${path}`, {
+        method, headers: { "Content-Type": type }, body,
+        signal: AbortSignal.timeout(60000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(data.detail || data));
+      return data;
+    }
+
+    async function ensurePatient() {
+      try { await api("GET", `/patients/${PATIENT_ID}`); } catch (_) { /* pre-seed via record script */ }
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => {
+        const tick = () => { if (!paused) return resolve(); setTimeout(tick, 200); };
+        setTimeout(tick, ms);
+      });
+    }
+
+    async function runCurrentStep() {
+      const step = STEPS[currentIndex];
+      setLiveStatus("Running…", "pending");
+      document.getElementById("liveResult").textContent = "Calling API…";
+      try {
+        const result = await step.run();
+        setLiveStatus(`Result: ${result.status}`);
+        document.getElementById("liveResult").textContent = result.detail;
+      } catch (err) {
+        setLiveStatus(`Error: ${err.message}`, "error");
+        document.getElementById("liveResult").textContent = String(err.message);
+      }
+    }
+
+    async function runFullTour() {
+      touring = true;
+      document.getElementById("tourBtn").disabled = true;
+      for (let i = 0; i < STEPS.length; i++) {
+        while (paused) await sleep(300);
+        currentIndex = i;
+        renderStep(i, false);
+        await sleep(PACE);
+        await runCurrentStep();
+        await sleep(READ_TIME);
+      }
+      touring = false;
+      document.getElementById("tourBtn").disabled = false;
+      document.getElementById("demo-complete").classList.remove("hidden");
+      setLiveStatus("Tour complete");
+    }
+
+    document.getElementById("runBtn").addEventListener("click", runCurrentStep);
+    document.getElementById("tourBtn").addEventListener("click", runFullTour);
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      if (currentIndex > 0) { currentIndex -= 1; renderStep(currentIndex, false); }
+    });
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      paused = !paused;
+      document.getElementById("pauseBtn").textContent = paused ? "Resume" : "Pause";
+    });
+
+    buildNav();
+    renderStep(0, false);
+    if (AUTOPLAY) setTimeout(runFullTour, 1200);
+  </script>
+</body>
+</html>

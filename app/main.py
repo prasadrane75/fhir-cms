@@ -43,6 +43,21 @@ async def chat_ui():
     return FileResponse(STATIC_DIR / "chat.html")
 
 
+@app.get("/dashboard")
+async def reporting_dashboard():
+    return FileResponse(STATIC_DIR / "dashboard.html")
+
+
+@app.get("/demo")
+async def capability_demo():
+    return FileResponse(STATIC_DIR / "demo.html")
+
+
+@app.get("/demo/explorer")
+async def capability_explorer_demo():
+    return FileResponse(STATIC_DIR / "demo_explorer.html")
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": settings.app_name}

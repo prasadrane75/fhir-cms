@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Capability Demonstration — High-Risk Diabetic Patient Journey</title>
+  <style>
+    :root {
+      --bg: #060912;
+      --panel: #10182a;
+      --panel-2: #162036;
+      --border: #243049;
+      --text: #f3f6ff;
+      --muted: #93a4c3;
+      --accent: #4f8cff;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --phase-1: #3b82f6;
+      --phase-2: #8b5cf6;
+      --phase-3: #ec4899;
+      --phase-4: #14b8a6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .stage {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(79, 140, 255, 0.18), transparent 35%),
+        radial-gradient(circle at 85% 100%, rgba(20, 184, 166, 0.12), transparent 30%),
+        var(--bg);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 { font-size: 1.15rem; font-weight: 650; letter-spacing: -0.02em; }
+    header p { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+
+    .badge {
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.25rem;
+      padding: 1.25rem 2rem;
+      min-height: 0;
+    }
+
+    .timeline {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .timeline-header {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .timeline-list {
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 10px;
+      margin-bottom: 0.35rem;
+      opacity: 0.45;
+      transition: opacity 0.4s, background 0.4s;
+    }
+
+    .step-item.active {
+      opacity: 1;
+      background: var(--panel-2);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .step-item.done { opacity: 0.85; }
+    .step-item.done .step-dot { background: var(--success); }
+
+    .step-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 0.35rem;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .step-item.active .step-dot {
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(79, 140, 255, 0.8);
+    }
+
+    .step-meta { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .step-title { font-size: 0.88rem; font-weight: 600; margin-top: 0.15rem; }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 40%, rgba(79, 140, 255, 0.05) 100%);
+      pointer-events: none;
+    }
+
+    .phase-tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .hero h2 {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      max-width: 18ch;
+    }
+
+    .hero p {
+      margin-top: 1rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 52ch;
+      line-height: 1.6;
+    }
+
+    .result-box {
+      margin-top: 1.5rem;
+      padding: 1rem 1.1rem;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      max-height: 180px;
+      overflow: auto;
+      color: #c9d7f2;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 1.25rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: rgba(34, 197, 94, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+
+    .status-pill.pending {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .status-pill.error {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.9rem 2rem 1.2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background: var(--panel-2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 0 1.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #14b8a6);
+      transition: width 0.6s ease;
+    }
+
+    .controls { display: flex; gap: 0.6rem; }
+    .controls button {
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .controls button.primary {
+      background: var(--accent);
+      border-color: transparent;
+      color: white;
+      font-weight: 600;
+    }
+
+    .intro, .finale { text-align: center; align-items: center; }
+    .intro h2, .finale h2 { max-width: none; }
+    .intro p, .finale p { max-width: 60ch; margin-left: auto; margin-right: auto; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      .timeline { max-height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <header>
+      <div>
+        <h1>FHIR Case Management System</h1>
+        <p>End-to-end capability demonstration — Robert Martinez (M1002 / P1002)</p>
+      </div>
+        <span class="badge" id="phaseBadge">Ready</span>
+        <span class="badge"><a href="/demo/explorer" style="color:inherit;text-decoration:none">Detailed tour →</a></span>
+    </header>
+
+    <main>
+      <aside class="timeline">
+        <div class="timeline-header">Capability Journey</div>
+        <div class="timeline-list" id="timeline"></div>
+      </aside>
+
+      <section class="hero" id="hero">
+        <div class="phase-tag" id="phaseTag">Introduction</div>
+        <h2 id="heroTitle">High-Risk Diabetic Patient Journey</h2>
+        <p id="heroDesc">Live demonstration across 11 capabilities — eligibility, clinical automation, payment integrity, and executive reporting.</p>
+        <div class="status-pill pending" id="statusPill"><span id="statusText">Press Start Demo or wait for autoplay</span></div>
+        <pre class="result-box hidden" id="resultBox"></pre>
+      </section>
+    </main>
+
+    <footer>
+      <span id="stepCounter">Step 0 / 13</span>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="controls">
+        <button id="pauseBtn">Pause</button>
+        <button class="primary" id="startBtn">Start Demo</button>
+      </div>
+    </footer>
+  </div>
+
+  <div id="demo-complete" class="hidden"></div>
+
+  <script>
+    const API = "/api/v1";
+    const MEMBER_ID = "M1002";
+    const PATIENT_ID = "P1002";
+    const MRN = "1002";
+    const PAYER_ID = "PAYER01";
+    const PROVIDER_NPI = "1234567890";
+    const SERVICE_DATE = new Date().toISOString().slice(0, 10);
+
+    const params = new URLSearchParams(location.search);
+    const AUTOPLAY = params.get("autoplay") === "1";
+    const FAST = params.get("fast") === "1";
+    const PACE = params.get("pace") === "slow" ? (FAST ? 1200 : 4500) : (FAST ? 800 : 2800);
+    const PAUSE_AFTER = params.get("pace") === "slow" ? (FAST ? 900 : 2200) : (FAST ? 600 : 1200);
+
+    let caseId = null;
+    let paused = false;
+    let currentIndex = -1;
+
+    const STEPS = [
+      {
+        phase: "Introduction",
+        phaseColor: "#4f8cff",
+        cap: "Overview",
+        title: "Scenario: The High-Risk Diabetic Patient Journey",
+        desc: "Robert Martinez enrolls through his employer, visits the ER with hyperglycemia, and moves through adjudication, prior auth, care gaps, and executive analytics.",
+        run: async () => ({ status: "ready", detail: "Member M1002 · Patient P1002 · Payer PAYER01" }),
+      },
+      {
+        phase: "Phase 1 — Foundation",
+        phaseColor: "var(--phase-1)",
+        cap: "Cap 01",
+        title: "Member Eligibility — X12 834 Enrollment",
+        desc: "Employer group 834 payload is ingested, schema-validated, and active coverage is registered on the product spine.",
+        run: async () => {
+          const data = await api("POST", "/capabilities/01/eligibility/834", {
+            member_id: MEMBER_ID,
+            payer_id: PAYER_ID,
+            plan_id: "PLAN-GOLD",
+            coverage_start_date: "2026-01-01",
+            subscriber_first_name: "Robert",
+            subscriber_last_name: "Martinez",
+          });
+          return { status: data.validation_status, detail: JSON.stringify(data, null, 2) };
+        },
+      },
+      {
+        phase: "Phase 1 — Foundation",
+        phaseColor: "var(--phase-1)",
+        cap: "Cap 03",
+        title: "HL7 ADT — Emergency Room Admission",
+        desc: "Real-time ADT listener matches patient P1002 and records the ER admission without latency.",
+        run: async () => {
+          const adt = [
+            "MSH|^~\\&|ER_SYSTEM|MEMORIAL|FHIR-CMS|FACILITY|20260807143000||ADT^A01|ER1002|P|2.5",
+            "EVN|A01|20260807143000",
+            `PID|1||${PATIENT_ID}^^^MRN||MARTINEZ^ROBERT^A||19650612|M`,
+            "PV1|1|E|ER^01^01||||1234567890^CHEN^SARAH",
+          ].join("\r");
+          const data = await apiRaw("POST", "/capabilities/03/adt", adt, "text/plain");
+          return { status: data.processing_status, detail: `Patient ${data.patient_id} · Event ${data.event_code}` };
+        },
+      },
+      {
+        phase: "Phase 1 — Foundation",
+        phaseColor: "var(--phase-1)",
+        cap: "Cap 04",
+        title: "Provider Validation — NPI & Credentialing",
+        desc: "Attending physician NPI is verified against the master directory for active network and compliance status.",
+        run: async () => {
+          const data = await api("POST", "/capabilities/04/providers/validate", {
+            npi: PROVIDER_NPI,
+            tax_id: "12-3456789",
+            provider_name: "Dr. Sarah Chen",
+          });
+          return { status: `${data.network_status}/${data.credentialing_status}`, detail: data.validation_notes.join("\n") };
+        },
+      },
+      {
+        phase: "Phase 2 — Automate",
+        phaseColor: "var(--phase-2)",
+        cap: "Cap 02",
+        title: "Claims Intake & Adjudication",
+        desc: "837 institutional claim with Glucose 280 mg/dL and elevated Creatinine is validated against pricing rules and flagged for review.",
+        run: async () => {
+          await ensurePatient();
+          await api("POST", `/patients/${PATIENT_ID}/observations`, {
+            loinc_code: "2339-0", display: "Glucose", value: 280, unit: "mg/dL", effective_date: SERVICE_DATE,
+          }).catch(() => null);
+          await api("POST", `/patients/${PATIENT_ID}/observations`, {
+            loinc_code: "2160-0", display: "Creatinine", value: 1.8, unit: "mg/dL", effective_date: SERVICE_DATE,
+          }).catch(() => null);
+          const data = await api("POST", "/capabilities/02/claims/adjudicate", {
+            claim_id: "CLM-ER-1002",
+            member_id: MEMBER_ID,
+            payer_id: PAYER_ID,
+            provider_npi: PROVIDER_NPI,
+            service_date: SERVICE_DATE,
+            line_items: [
+              { procedure_code: "99285", billed_amount: 450, units: 1 },
+              { procedure_code: "80053", billed_amount: 45, units: 1 },
+            ],
+          });
+          return { status: data.adjudication_status, detail: `Duplicate: ${data.duplicate_detected}\n${JSON.stringify(data.line_adjudications, null, 2)}` };
+        },
+      },
+      {
+        phase: "Phase 2 — Automate",
+        phaseColor: "var(--phase-2)",
+        cap: "Cap 05",
+        title: "Prior Authorization — LangGraph + Neo4j",
+        desc: "UM case auto-spawned. LangGraph agent analyzes chronic disease progression risk using the clinical knowledge graph.",
+        run: async () => {
+          if (FAST) {
+            caseId = "demo-case-fast-mode";
+            await sleep(2000);
+            return {
+              status: "Pending_Approval (simulated)",
+              detail:
+                "LangGraph reviewed glucose 280 mg/dL and elevated creatinine.\n" +
+                "Neo4j grounding: Type 2 Diabetes, Hypertension, CKD risk.\n" +
+                "Recommendation: approve with care management outreach.",
+            };
+          }
+          setStatus("Running LangGraph agent (30–120s)…", "pending");
+          const data = await api("POST", "/capabilities/05/prior-auth/evaluate", {
+            patient_id: PATIENT_ID,
+            member_id: MEMBER_ID,
+            clinical_query: "Is there risk of chronic disease progression?",
+            title: "High-risk diabetic ER follow-up prior auth",
+            description: "Glucose 280 mg/dL with elevated creatinine after ER visit.",
+          }, 300000);
+          caseId = data.case_id;
+          return { status: data.status, detail: (data.ai_summary || "").slice(0, 1200) };
+        },
+      },
+      {
+        phase: "Phase 2 — Automate",
+        phaseColor: "var(--phase-2)",
+        cap: "Cap 06",
+        title: "Appeals & Grievances — Structured Draft",
+        desc: "Agent drafts a clinical recommendation. Multi-system risk triggers interrupt() and full PostgreSQL audit traceability.",
+        run: async () => {
+          if (FAST || !caseId || caseId === "demo-case-fast-mode") {
+            return {
+              status: "multi-system risk (simulated)",
+              detail:
+                "APPEALS DRAFT — Complex multi-system risk detected.\n" +
+                "Human interrupt() checkpoint logged to PostgreSQL audit ledger.",
+            };
+          }
+          if (!caseId) throw new Error("No case_id from prior auth step");
+          const data = await api("POST", "/capabilities/06/appeals/draft", { case_id: caseId });
+          return {
+            status: data.multi_system_risk_detected ? "multi-system risk" : "standard",
+            detail: data.draft_summary.slice(0, 1000),
+          };
+        },
+      },
+      {
+        phase: "Phase 2 — Automate",
+        phaseColor: "var(--phase-2)",
+        cap: "HITL",
+        title: "Human Approval Checkpoint",
+        desc: "Reviewer approves the AI recommendation — case transitions to Approved with immutable audit evidence.",
+        run: async () => {
+          if (FAST || !caseId || caseId === "demo-case-fast-mode") {
+            return { status: "Approved (simulated)", detail: "Human reviewer approved care management authorization." };
+          }
+          if (!caseId) throw new Error("No case_id");
+          const data = await api("POST", `/cases/${caseId}/human-approval`, {
+            approved: true,
+            reason: "High-risk diabetic criteria met; care management authorized.",
+          });
+          return { status: data.status, detail: `Case ${caseId} finalized.` };
+        },
+      },
+      {
+        phase: "Phase 2 — Automate",
+        phaseColor: "var(--phase-2)",
+        cap: "Cap 07",
+        title: "Care Management & Care Gap Analytics",
+        desc: "Comorbidity risk score calculated from Neo4j; high-priority gaps queued for care coordinator outreach.",
+        run: async () => {
+          const data = await api("POST", "/capabilities/07/care-gaps/analyze", { member_id: MEMBER_ID });
+          const risk = data.comorbidity_risks[0];
+          return {
+            status: risk ? `risk ${risk.comorbidity_risk_score} (${risk.risk_level})` : "no member graph",
+            detail: `${data.care_gaps.length} gap(s), ${data.high_priority_gap_count} high-priority\n` +
+              (risk ? JSON.stringify(risk, null, 2) : "Seed Neo4j init.cypher for M1002"),
+          };
+        },
+      },
+      {
+        phase: "Phase 3 — Intelligence",
+        phaseColor: "var(--phase-3)",
+        cap: "Cap 08",
+        title: "Encounter Normalization — CMS Reporting",
+        desc: "Diagnosis and procedure codes mapped to ICD-10/CPT for clean regulatory submission.",
+        run: async () => {
+          const data = await api("POST", "/capabilities/08/encounters/normalize", {
+            member_id: MEMBER_ID,
+            patient_id: PATIENT_ID,
+            diagnosis_codes: ["E11", "I10"],
+            procedure_codes: ["99285", "80053"],
+            service_date: SERVICE_DATE,
+          });
+          return { status: data.cms_ready ? "CMS ready" : "incomplete", detail: JSON.stringify(data.normalized_diagnoses, null, 2) };
+        },
+      },
+      {
+        phase: "Phase 3 — Intelligence",
+        phaseColor: "var(--phase-3)",
+        cap: "Cap 09",
+        title: "Third-Party Liability Check",
+        desc: "TPL scan confirms primary payer status before disbursement.",
+        run: async () => {
+          const data = await api("POST", "/capabilities/09/tpl/check", {
+            member_id: MEMBER_ID, payer_id: PAYER_ID, accident_related: false,
+          });
+          return { status: data.primary_payer_status, detail: data.validation_notes.join("\n") };
+        },
+      },
+      {
+        phase: "Phase 3 — Intelligence",
+        phaseColor: "var(--phase-3)",
+        cap: "Cap 10",
+        title: "Payment Integrity Screening",
+        desc: "Duplicate payments, coding discrepancies, and overpayment anomalies screened with clearance scoring.",
+        run: async () => {
+          const data = await api("POST", "/capabilities/10/payment-integrity/detect", {
+            member_id: MEMBER_ID, payer_id: PAYER_ID, lookback_days: 90,
+          });
+          return {
+            status: data.anomaly_count === 0 ? "high-confidence clearance" : `${data.anomaly_count} anomaly(ies)`,
+            detail: JSON.stringify(data.duplicate_payments, null, 2),
+          };
+        },
+      },
+      {
+        phase: "Phase 4 — Optimize",
+        phaseColor: "var(--phase-4)",
+        cap: "Cap 11",
+        title: "Enterprise Data Warehouse & Executive Dashboard",
+        desc: "Real-time balanced scorecard from PostgreSQL audit ledger — operational, financial, clinical, and compliance metrics.",
+        run: async () => {
+          const data = await api("GET", "/capabilities/11/reporting/scorecard?lookback_days=7");
+          return {
+            status: `${data.audit_exceptions.total_events} events tracked`,
+            detail: [
+              `Approval ratio: ${((data.approval_denial.approval_ratio || 0) * 100).toFixed(1)}%`,
+              `Exception rate: ${((data.audit_exceptions.exception_rate || 0) * 100).toFixed(1)}%`,
+              `AI reviews: ${data.model_tracking.ai_review_count}`,
+              `Avg cycle: ${data.cycle_times.avg_total_cycle_hours ?? "—"} hr`,
+            ].join("\n"),
+          };
+        },
+      },
+      {
+        phase: "Complete",
+        phaseColor: "#22c55e",
+        cap: "Finale",
+        title: "Demonstration Complete",
+        desc: "All capability handoffs recorded in the audit ledger. Open the executive dashboard for live scorecard monitoring.",
+        run: async () => {
+          document.getElementById("demo-complete").classList.remove("hidden");
+          return { status: "complete", detail: "Dashboard: /dashboard" };
+        },
+      },
+    ];
+
+    function buildTimeline() {
+      const list = document.getElementById("timeline");
+      list.innerHTML = STEPS.map((step, i) => `
+        <div class="step-item" id="step-${i}">
+          <div class="step-dot"></div>
+          <div>
+            <div class="step-meta">${step.cap}</div>
+            <div class="step-title">${step.title}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function api(method, path, body, timeout = 60000) {
+      const res = await fetch(`${API}${path}`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(timeout),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail ? JSON.stringify(data.detail) : res.statusText);
+      return data;
+    }
+
+    async function apiRaw(method, path, body, type) {
+      const res = await fetch(`${API}${path}`, {
+        method,
+        headers: { "Content-Type": type },
+        body,
+        signal: AbortSignal.timeout(60000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(data.detail || data));
+      return data;
+    }
+
+    async function ensurePatient() {
+      try {
+        await api("GET", `/patients/${PATIENT_ID}`);
+      } catch (_) {
+        /* Patient should be pre-created by record script or e2e setup */
+      }
+    }
+
+    function setStatus(text, kind = "ok") {
+      const pill = document.getElementById("statusPill");
+      pill.className = `status-pill ${kind === "pending" ? "pending" : kind === "error" ? "error" : ""}`;
+      document.getElementById("statusText").textContent = text;
+    }
+
+    function renderStep(index) {
+      const step = STEPS[index];
+      document.getElementById("phaseBadge").textContent = step.phase;
+      document.getElementById("phaseTag").textContent = step.cap;
+      document.getElementById("phaseTag").style.color = step.phaseColor;
+      document.getElementById("heroTitle").textContent = step.title;
+      document.getElementById("heroDesc").textContent = step.desc;
+      document.getElementById("stepCounter").textContent = `Step ${index + 1} / ${STEPS.length}`;
+      document.getElementById("progressFill").style.width = `${((index + 1) / STEPS.length) * 100}%`;
+
+      document.querySelectorAll(".step-item").forEach((el, i) => {
+        el.classList.toggle("active", i === index);
+        el.classList.toggle("done", i < index);
+      });
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => {
+        const tick = () => {
+          if (!paused) return resolve();
+          setTimeout(tick, 200);
+        };
+        setTimeout(tick, ms);
+      });
+    }
+
+    async function runDemo() {
+      document.getElementById("startBtn").disabled = true;
+      for (let i = 0; i < STEPS.length; i++) {
+        if (paused) await sleep(500);
+        currentIndex = i;
+        renderStep(i);
+        const step = STEPS[i];
+        setStatus("Running…", "pending");
+        document.getElementById("resultBox").classList.add("hidden");
+
+        try {
+          const result = await step.run();
+          setStatus(`Result: ${result.status}`);
+          const box = document.getElementById("resultBox");
+          box.textContent = result.detail;
+          box.classList.remove("hidden");
+        } catch (err) {
+          setStatus(`Error: ${err.message}`, "error");
+          document.getElementById("resultBox").textContent = String(err.message);
+          document.getElementById("resultBox").classList.remove("hidden");
+        }
+
+        await sleep(PAUSE_AFTER);
+      }
+      document.getElementById("demo-complete").classList.remove("hidden");
+      setStatus("Demonstration complete");
+    }
+
+    document.getElementById("startBtn").addEventListener("click", runDemo);
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      paused = !paused;
+      document.getElementById("pauseBtn").textContent = paused ? "Resume" : "Pause";
+    });
+
+    buildTimeline();
+    renderStep(0);
+
+    if (AUTOPLAY) {
+      setTimeout(runDemo, PACE);
+    }
+  </script>
+</body>
+</html>
