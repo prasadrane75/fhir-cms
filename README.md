@@ -71,10 +71,28 @@ This starts:
 
 Test UI: http://localhost:8000/  
 Chat UI: http://localhost:8000/chat  
+Quick capability journey: http://localhost:8000/demo  
+**Capability Explorer** (detailed per-capability tour): http://localhost:8000/demo/explorer  
+Executive dashboard: http://localhost:8000/dashboard  
 API docs: http://localhost:8000/docs  
 Functional manual: [docs/FUNCTIONAL_MANUAL.md](docs/FUNCTIONAL_MANUAL.md)  
 Phase 1 chat: [docs/PHASE1_CHAT.md](docs/PHASE1_CHAT.md)  
 Phase 2 webhooks: [docs/PHASE2_WEBHOOKS.md](docs/PHASE2_WEBHOOKS.md)
+
+#### Demo modes
+
+| URL | Use case | Best for |
+|-----|----------|----------|
+| `/demo` | High-risk diabetic patient journey (Robert Martinez / M1002) | Fast executive narrative |
+| `/demo/explorer` | Cardiac care coordination (Jane Doe / M1001) — **each capability explained separately** | Deep-dive briefings, training, narrated video |
+| `/dashboard` | Capability 11 balanced scorecard | Live KPI monitoring |
+
+Record the detailed explorer demo:
+
+```bash
+python3 scripts/record_capability_explorer_demo.py --fast --pace slow
+python3 scripts/add_voice_commentary.py --narration explorer
+```
 
 ### 3. Seed the Neo4j knowledge graph
 

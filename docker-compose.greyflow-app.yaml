@@ -60,7 +60,7 @@ services:
       - fhir-cms
 
   hapi-fhir:
-    image: hapiproject/hapi:7.6.0
+    image: hapiproject/hapi:latest
     container_name: fhir-cms-hapi
     ports:
       - "127.0.0.1:8080:8080"

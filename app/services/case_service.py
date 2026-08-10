@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from app.ai.agent import resume_case_review, run_case_review
+from app.ai.agent import ClaimReviewContext, ReviewMode, resume_case_review, run_case_review
 from app.core.fhir_client import FHIRClient
 from app.core.models.case import Case, CaseCreate, CaseStatus
 from app.core.models.observation import Observation
@@ -74,7 +74,14 @@ class CaseService:
         case.updated_at = datetime.utcnow()
         return case
 
-    async def run_ai_review(self, case_id: UUID, clinical_query: str) -> Case:
+    async def run_ai_review(
+        self,
+        case_id: UUID,
+        clinical_query: str,
+        *,
+        review_mode: ReviewMode = ReviewMode.PRIOR_AUTH,
+        claim_context: ClaimReviewContext | None = None,
+    ) -> Case:
         case = self._cases.get(case_id)
         if not case:
             raise KeyError(f"Case {case_id} not found")
@@ -83,7 +90,12 @@ class CaseService:
         if case.status != CaseStatus.AI_REVIEW:
             raise InvalidTransitionError(case.status, CaseStatus.AI_REVIEW)
 
-        review = await run_case_review(case, clinical_query)
+        review = await run_case_review(
+            case,
+            clinical_query,
+            review_mode=review_mode,
+            claim_context=claim_context,
+        )
         case.ai_summary = review.summary
         if review.awaiting_approval:
             validate_transition(case.status, CaseStatus.PENDING_APPROVAL)

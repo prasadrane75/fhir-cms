@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
+from app.core.models.claims import ClaimLineItem
 from app.core.models.observation import Observation
 from app.core.models.patient import Patient
 
@@ -42,6 +43,13 @@ class CaseTransitionRequest(BaseModel):
 
 class CaseReviewRequest(BaseModel):
     clinical_query: str = "Summarize relevant clinical context for this case."
+    review_mode: str = "prior_auth"
+    claim_id: str | None = None
+    member_id: str | None = None
+    payer_id: str | None = None
+    service_date: date | None = None
+    provider_npi: str | None = None
+    line_items: list[ClaimLineItem] = Field(default_factory=list)
 
 
 class HumanApprovalRequest(BaseModel):

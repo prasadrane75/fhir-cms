@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import DateTime, String, Text, select
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
@@ -72,6 +72,37 @@ async def list_audit_logs(entity_id: str | None = None, limit: int = 50) -> list
                 "entity_id": row.entity_id,
                 "actor": row.actor,
                 "details": row.details,
+                "message": row.message,
+            }
+            for row in rows
+        ]
+
+
+async def fetch_audit_logs_since(
+    *,
+    lookback_days: int = 30,
+    limit: int = 10000,
+) -> list[dict]:
+    """Fetch audit ledger rows within a lookback window for reporting aggregates."""
+    cutoff = datetime.utcnow() - timedelta(days=lookback_days)
+    async with async_session_factory() as session:
+        stmt = (
+            select(AuditLog)
+            .where(AuditLog.timestamp >= cutoff)
+            .order_by(AuditLog.timestamp.asc())
+            .limit(limit)
+        )
+        result = await session.execute(stmt)
+        rows = result.scalars().all()
+        return [
+            {
+                "id": row.id,
+                "timestamp": row.timestamp,
+                "action": row.action,
+                "entity_type": row.entity_type,
+                "entity_id": row.entity_id,
+                "actor": row.actor,
+                "details": row.details or {},
                 "message": row.message,
             }
             for row in rows

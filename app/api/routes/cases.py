@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
+from app.ai.agent import ClaimReviewContext, ReviewMode
 from app.core.models.case import (
     Case,
     CaseCreate,
@@ -92,7 +93,49 @@ async def ai_review_case(
     background_tasks: BackgroundTasks,
 ) -> Case:
     try:
-        case = await case_service.run_ai_review(case_id, payload.clinical_query)
+        review_mode = ReviewMode(payload.review_mode)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid review_mode '{payload.review_mode}'. Use prior_auth or claims_adjudication.",
+        ) from exc
+
+    claim_context = None
+    if review_mode == ReviewMode.CLAIMS_ADJUDICATION:
+        missing = [
+            field
+            for field, value in {
+                "claim_id": payload.claim_id,
+                "member_id": payload.member_id,
+                "payer_id": payload.payer_id,
+                "service_date": payload.service_date,
+            }.items()
+            if not value
+        ]
+        if missing or not payload.line_items:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Claims adjudication review requires claim_id, member_id, payer_id, "
+                    "service_date, and at least one line item."
+                ),
+            )
+        claim_context = ClaimReviewContext(
+            claim_id=payload.claim_id,
+            member_id=payload.member_id,
+            payer_id=payload.payer_id,
+            service_date=payload.service_date.isoformat(),
+            provider_npi=payload.provider_npi,
+            line_items=payload.line_items,
+        )
+
+    try:
+        case = await case_service.run_ai_review(
+            case_id,
+            payload.clinical_query,
+            review_mode=review_mode,
+            claim_context=claim_context,
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail="Case not found") from None
     except InvalidTransitionError as exc:
@@ -108,12 +151,22 @@ async def ai_review_case(
         entity_id=str(case_id),
         details={
             "clinical_query": payload.clinical_query,
+            "review_mode": review_mode.value,
             "status": case.status.value,
         },
         message=(
-            "AI clinical review completed; awaiting human approval"
-            if case.status == CaseStatus.PENDING_APPROVAL
-            else "AI clinical review completed"
+            "AI claims adjudication completed; awaiting human approval"
+            if review_mode == ReviewMode.CLAIMS_ADJUDICATION
+            and case.status == CaseStatus.PENDING_APPROVAL
+            else (
+                "AI clinical review completed; awaiting human approval"
+                if case.status == CaseStatus.PENDING_APPROVAL
+                else (
+                    "AI claims adjudication completed"
+                    if review_mode == ReviewMode.CLAIMS_ADJUDICATION
+                    else "AI clinical review completed"
+                )
+            )
         ),
     )
     return case

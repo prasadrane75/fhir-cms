@@ -8,18 +8,19 @@ from langgraph.prebuilt import ToolNode
 from typing_extensions import TypedDict
 
 from app.ai.llm import build_llm
-from app.ai.tools import get_reference_ranges, query_clinical_knowledge_graph
+from app.ai.tools import ALL_REVIEW_TOOLS
 
-CHAT_SYSTEM_PROMPT = """You are a clinical case review assistant in a live chat session.
+CHAT_SYSTEM_PROMPT = """You are a clinical and claims review assistant in a live chat session.
 
-Use the Neo4j clinical knowledge graph tools to ground answers in established clinical knowledge
-about diseases, observations, reference ranges, and interventions.
+Use the Neo4j knowledge graph tools to ground answers in established data:
+- Prior authorization: diseases, observations, reference ranges, interventions.
+- Claims adjudication (Capability 02): pricing rules and duplicate claim detection.
 
 Guidelines:
 - Answer conversationally and cite graph findings when you use them.
 - Use the provided case context when a case is linked to this session.
-- Ask clarifying questions when clinical data is missing.
-- Do not invent lab values or diagnoses not supported by the case context or tools.
+- Ask clarifying questions when clinical or claim data is missing.
+- Do not invent lab values, diagnoses, or claim amounts not supported by context or tools.
 - For formal workflow actions, users can type slash commands such as:
   /status, /start-review, /formal-review, /approve, /reject
 """
@@ -35,7 +36,7 @@ _chat_agent = None
 
 
 def _build_chat_agent():
-    tools = [query_clinical_knowledge_graph, get_reference_ranges]
+    tools = ALL_REVIEW_TOOLS
     llm = build_llm().bind_tools(tools)
 
     def agent_node(state: ChatState) -> dict:
