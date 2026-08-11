@@ -175,10 +175,15 @@ def test_sc10_cap04_provider_not_in_directory():
 
 
 @pytest.mark.asyncio
+@patch("app.services.prior_auth_service.audit_case_ai_review", new_callable=AsyncMock)
+@patch("app.services.prior_auth_service.audit_case_transition", new_callable=AsyncMock)
+@patch("app.services.prior_auth_service.audit_case_created", new_callable=AsyncMock)
 @patch("app.services.prior_auth_service.case_service.run_ai_review", new_callable=AsyncMock)
 @patch("app.services.prior_auth_service.case_service.transition")
 @patch("app.services.prior_auth_service.case_service.create_case", new_callable=AsyncMock)
-async def test_sc11_cap05_prior_auth_spawns_ai_review_case(mock_create, mock_transition, mock_review):
+async def test_sc11_cap05_prior_auth_spawns_ai_review_case(
+    mock_create, mock_transition, mock_review, mock_audit_created, mock_audit_transition, mock_audit_review
+):
     from app.services.prior_auth_service import prior_auth_service
 
     case = Case(patient_id="P1002", title="PA", description="test")
@@ -198,6 +203,9 @@ async def test_sc11_cap05_prior_auth_spawns_ai_review_case(mock_create, mock_tra
     assert result.awaiting_human_approval is True
     assert result.status == "Pending_Approval"
     mock_transition.assert_called_once()
+    mock_audit_created.assert_awaited_once()
+    mock_audit_transition.assert_awaited_once()
+    mock_audit_review.assert_awaited_once()
 
 
 # --- Capability 06 -----------------------------------------------------------------

@@ -162,7 +162,7 @@ curl -X POST http://localhost:8000/api/v1/webhooks/fhir/observation \
       "coding": [{"system": "http://loinc.org", "code": "2339-0", "display": "Glucose"}],
       "text": "Glucose"
     },
-    "subject": {"reference": "Patient/1000"},
+    "subject": {"reference": "Patient/P1000"},
     "effectiveDateTime": "2026-07-24",
     "valueQuantity": {"value": 145, "unit": "mg/dL"}
   }'
@@ -172,7 +172,7 @@ Then open http://localhost:8000/ — a new case should appear and move to `Pendi
 
 ## 5. End-to-end test with HAPI
 
-1. Ensure patient `1000` exists in HAPI FHIR
+1. Ensure patient `P1000` exists in HAPI FHIR (HAPI rejects purely numeric client IDs like `1000`)
 2. Register the subscription (step 3) — status must be **`active`**
 3. Post a new Observation to HAPI:
 
@@ -186,7 +186,7 @@ curl -X POST http://localhost:8080/fhir/Observation \
       "coding": [{"system": "http://loinc.org", "code": "2339-0", "display": "Glucose"}],
       "text": "Glucose"
     },
-    "subject": {"reference": "Patient/1000"},
+    "subject": {"reference": "Patient/P1000"},
     "effectiveDateTime": "2026-07-24",
     "valueQuantity": {"value": 152, "unit": "mg/dL"}
   }'

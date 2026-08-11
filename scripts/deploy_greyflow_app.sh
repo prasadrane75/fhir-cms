@@ -81,6 +81,10 @@ up() {
     sleep 2
   done
   seed_neo4j || echo "Neo4j seed skipped (run seed manually if needed)."
+  if [[ -x "${ROOT}/scripts/seed_fhir_patients.sh" ]]; then
+    FHIR_BASE_URL="${FHIR_BASE_URL:-http://127.0.0.1:8080/fhir}" \
+      "${ROOT}/scripts/seed_fhir_patients.sh" || echo "FHIR patient seed skipped."
+  fi
   echo ""
   echo "URLs (on greyflow-app):"
   echo "  API/docs:  http://127.0.0.1:${FHIR_CMS_PORT:-8001}/docs"

@@ -5,6 +5,7 @@ from app.ai.agent import ClaimReviewContext, ReviewMode, resume_case_review, run
 from app.core.fhir_client import FHIRClient
 from app.core.models.case import Case, CaseCreate, CaseStatus
 from app.core.models.observation import Observation
+from app.services.case_audit import audit_case_ai_review, audit_case_created, audit_case_transition
 from app.services.fhir_webhook import observation_label
 from app.state_machine.case_state import InvalidTransitionError, get_allowed_transitions, validate_transition
 
@@ -112,6 +113,7 @@ class CaseService:
         case = self.find_workflow_case_for_patient(patient_id)
         if case is None:
             case = await self.create_case_from_observation(patient_id, observation)
+            await audit_case_created(case, actor="fhir-webhook")
 
         await self.refresh_case_clinical_data(case)
 
@@ -121,15 +123,23 @@ class CaseService:
             CaseStatus.REJECTED,
         }:
             case = await self.create_case_from_observation(patient_id, observation)
+            await audit_case_created(case, actor="fhir-webhook")
             await self.refresh_case_clinical_data(case)
 
         if case.status == CaseStatus.PENDING:
             validate_transition(case.status, CaseStatus.AI_REVIEW)
             case.status = CaseStatus.AI_REVIEW
             case.updated_at = datetime.utcnow()
+            await audit_case_transition(case.id, CaseStatus.AI_REVIEW, actor="fhir-webhook")
 
         if case.status == CaseStatus.AI_REVIEW:
             case = await self.run_ai_review(case.id, clinical_query)
+            await audit_case_ai_review(
+                case,
+                clinical_query=clinical_query,
+                review_mode=ReviewMode.PRIOR_AUTH,
+                actor="fhir-webhook",
+            )
 
         return case
 

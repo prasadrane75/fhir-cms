@@ -273,6 +273,10 @@
 
     function fmtHours(value) {
       if (value == null) return "—";
+      const totalSeconds = value * 3600;
+      if (totalSeconds < 60) {
+        return totalSeconds < 5 ? "<1 min" : `${Math.round(totalSeconds)} sec`;
+      }
       if (value < 1) return `${Math.round(value * 60)} min`;
       return `${value.toFixed(1)} hr`;
     }

@@ -120,10 +120,22 @@ class ReportingService:
                 ),
                 None,
             )
+            if ai_review_start is None and created_at is not None:
+                # Cap 05 / webhook paths transition immediately after create.
+                ai_review_start = created_at
             ai_review_done = next(
                 (row["timestamp"] for row in events if row["action"] == "case.ai_review"),
                 None,
             )
+            if ai_review_done is None:
+                ai_review_done = next(
+                    (
+                        row["timestamp"]
+                        for row in events
+                        if row["action"] == "capability05.prior_auth_evaluated"
+                    ),
+                    None,
+                )
             human_decision = next(
                 (row["timestamp"] for row in events if row["action"] == "case.human_approval"),
                 None,

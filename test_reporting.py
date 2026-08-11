@@ -21,6 +21,32 @@ def _log(
     }
 
 
+def test_aggregate_cycle_times_with_capability05_fallback():
+    base = datetime.utcnow() - timedelta(hours=10)
+    logs = [
+        _log(
+            action="capability05.prior_auth_evaluated",
+            entity_type="Case",
+            entity_id="case-cap05",
+            timestamp=base + timedelta(hours=2),
+        ),
+        _log(
+            action="case.human_approval",
+            entity_type="Case",
+            entity_id="case-cap05",
+            timestamp=base + timedelta(hours=4),
+            details={"approved": True},
+        ),
+    ]
+
+    metrics = ReportingService()._aggregate_cycle_times(logs)
+
+    assert metrics.sample_size == 1
+    assert metrics.avg_pending_approval_hours == 2.0
+    assert metrics.avg_pending_to_ai_review_hours is None
+    assert metrics.avg_ai_review_hours is None
+
+
 def test_aggregate_cycle_times():
     base = datetime.utcnow() - timedelta(hours=10)
     logs = [
